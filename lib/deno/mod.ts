@@ -215,7 +215,7 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
  @@ -223,8 +224,8 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
        // we can do.
        //
-       // See this for more info: https://github.com/evanw/esbuild/pull/3611
+       // See this for more info: https://github.com/khulnasoft/ezburn/pull/2
        await writer?.close()
        await reader?.cancel()
 
