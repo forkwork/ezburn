@@ -203,29 +203,21 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
     stdout,
     stderr,
   }).spawn()
-  // Note: Need to check for "piped" in Deno ≥1.31.0 to avoid a crash
-  const writer = stdin === 'piped' ? child.stdin.getWriter() : null
-  const reader = stdout === 'piped' ? child.stdout.getReader() : null
-  return {
-    write: writer ? bytes => writer.write(bytes) : () => Promise.resolve(),
-    read: reader ? () => reader.read().then(x => x.value || null) : () => Promise.resolve(null),
-    close: async () => {
-      // We can't call "kill()" because it doesn't seem to work. Tests will
-      // still fail with "A child process was opened during the test, but not
-      // closed during the test" even though we kill the child process.
-      //
-      // And we can't call both "writer.close()" and "kill()" because then
-      // there's a race as the child process exits when stdin is closed, and
-      // "kill()" fails when the child process has already been killed.
-      //
-      // So instead we just call "writer.close()" and then hope that this
-      // causes the child process to exit. It won't work if the stdin consumer
-      // thread in the child process is hung or busy, but that may be the best
-      // we can do.
-      //
-      // See this for more info: https://github.com/khulnasoft/ezburn/pull/3611
-      if (writer) await writer.close()
-      if (reader) await reader.cancel()
+  // If any stdio options are not set to "piped", accessing the corresponding field on the Command or its CommandOutput will throw a TypeError.
+   const writer = stdin === "piped" ? child.stdin.getWriter() : null;
+   const reader = stdout === "piped" ? child.stdout.getReader() : null;
+   return {
+     write: writer === null ? null : bytes => writer.write(bytes),
+     read: reder === null ? null : () => reader.read().then(x => x.value || null),
+     close: async () => {
+       // We can't call "kill()" because it doesn't seem to work. Tests will
+       // still fail with "A child process was opened during the test, but not
+ @@ -223,8 +224,8 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
+       // we can do.
+       //
+       // See this for more info: https://github.com/evanw/esbuild/pull/3611
+       await writer?.close()
+       await reader?.cancel()
 
       // Wait for the process to exit. The new "kill()" API doesn't flag the
       // process as having exited because processes can technically ignore the
