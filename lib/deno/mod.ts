@@ -204,26 +204,22 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
     stderr,
   }).spawn()
   // If any stdio options are not set to "piped", accessing the corresponding field on the Command or its CommandOutput will throw a TypeError.
-   const writer = stdin === "piped" ? child.stdin.getWriter() : null;
-   const reader = stdout === "piped" ? child.stdout.getReader() : null;
-   return {
-     write: writer === null ? null : bytes => writer.write(bytes),
-     read: reder === null ? null : () => reader.read().then(x => x.value || null),
-     close: async () => {
-       // We can't call "kill()" because it doesn't seem to work. Tests will
-       // still fail with "A child process was opened during the test, but not
- @@ -223,8 +224,8 @@ const spawnNew: SpawnFn = (cmd, { args, stdin, stdout, stderr }) => {
-       // we can do.
-       //
-       // See this for more info: https://github.com/khulnasoft/ezburn/pull/2
-       await writer?.close()
-       await reader?.cancel()
-
-      // Wait for the process to exit. The new "kill()" API doesn't flag the
-      // process as having exited because processes can technically ignore the
-      // kill signal. Without this, Deno will fail tests that use ezburn with
-      // an error because the test spawned a process but didn't wait for it.
-      await child.status
+  const writer = stdin === "piped" ? child.stdin.getWriter() : null;
+  const reader = stdout === "piped" ? child.stdout.getReader() : null;
+  return {
+    write(bytes) {
+      if (writer === null) throw new Error("stdin is not piped");
+      return writer.write(bytes);
+    },
+    async read() {
+      if (reader === null) throw new Error("stdout is not piped");
+      const result = await reader.read();
+      return result.value;
+    },
+    async close() {
+      await writer?.close();
+      await reader?.cancel();
+      await child.status;
     },
     status: () => child.status,
   }

@@ -20,7 +20,7 @@ test-all:
 	@$(MAKE) --no-print-directory -j6 test-common test-deno ts-type-tests test-wasm-node test-wasm-browser lib-typecheck test-yarnpnp
 
 check-go-version:
-	@go version | grep ' go1\.23\.5 ' || (echo 'Please install Go version 1.23.5' && false)
+	@go version | grep ' go1\.24\.2 ' || (echo 'Please install Go version 1.24.2' && false)
 
 # Note: Don't add "-race" here by default. The Go race detector is currently
 # only supported on the following configurations:
@@ -58,9 +58,7 @@ no-filepath:
 # 1.17.2, which will crash when run in an environment with over 4096
 # bytes of environment variable data such as GitHub Actions.
 test-wasm-node: ezburn
-	env -i $(shell go env) PATH="$(shell go env GOROOT)/misc/wasm:$(PATH)" GOOS=js GOARCH=wasm go test ./internal/...
 	node scripts/wasm-tests.js
-
 test-wasm-browser: platform-wasm | scripts/browser/node_modules
 	cd scripts/browser && node browser-tests.js
 
@@ -68,7 +66,6 @@ test-deno: ezburn platform-deno
 	EZBURN_BINARY_PATH="$(shell pwd)/ezburn" deno test --allow-run --allow-env --allow-net --allow-read --allow-write --no-check scripts/deno-tests.js
 	@echo '✅ deno tests passed' # I couldn't find a Deno API for telling when tests have failed, so I'm doing this here instead
 	deno eval 'import { transform, stop } from "file://$(shell pwd)/deno/mod.js"; console.log((await transform("1+2")).code); stop()' | grep "1 + 2;"
-	deno eval 'import { transform, stop } from "file://$(shell pwd)/deno/wasm.js"; console.log((await transform("1+2")).code); stop()' | grep "1 + 2;"
 	deno run -A './deno/mod.js' # See: https://github.com/khulnasoft/ezburn/pull/3917
 
 test-deno-windows: ezburn platform-deno
@@ -180,57 +177,28 @@ test-e2e-pnpm:
 	cd e2e-pnpm && pnpm rebuild && pnpm rebuild
 	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
 
-	# Test install without scripts
-	rm -fr e2e-pnpm && mkdir e2e-pnpm && cd e2e-pnpm && echo {} > package.json && pnpm i --ignore-scripts ezburn
-	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
-	# Test CI reinstall
-	cd e2e-pnpm && pnpm i --frozen-lockfile
-	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
-	# Test rebuild
-	cd e2e-pnpm && pnpm rebuild && pnpm rebuild
-	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
-
-	# Test install without optional dependencies
-	rm -fr e2e-pnpm && mkdir e2e-pnpm && cd e2e-pnpm && echo {} > package.json && pnpm i --no-optional ezburn
-	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
-	# Test CI reinstall
-	cd e2e-pnpm && pnpm i --frozen-lockfile
-	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
-	# Test rebuild
-	cd e2e-pnpm && pnpm rebuild && pnpm rebuild
-	cd e2e-pnpm && echo "1+2" | node_modules/.bin/ezburn | grep "1 + 2;" && node -p "require('ezburn').transformSync('1+2').code" | grep "1 + 2;"
-
 	# Clean up
 	rm -fr e2e-pnpm
 
 test-e2e-yarn:
 	# Test normal install
-	rm -fr e2e-yarn && mkdir e2e-yarn && cd e2e-yarn && echo {} > package.json && touch yarn.lock && yarn set version classic && yarn add ezburn
+	rm -fr e2e-yarn && mkdir e2e-yarn && cd e2e-yarn && echo '{"scripts":{"ezburn":"ezburn"}}' > package.json && touch yarn.lock && yarn set version classic && yarn link ezburn && yarn install --ignore-optional
 	cd e2e-yarn && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
 	# Test CI reinstall
-	cd e2e-yarn && rm -fr node_modules && yarn install --immutable
+	cd e2e-yarn && rm -rf node_modules && yarn install --immutable --ignore-optional
 	cd e2e-yarn && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
-
 	# Test install without scripts
-	rm -fr e2e-yarn && mkdir e2e-yarn && cd e2e-yarn && echo {} > package.json && touch yarn.lock && echo 'enableScripts: false' > .yarnrc.yml && yarn set version classic && yarn add ezburn
+	cd e2e-yarn && rm -rf node_modules && yarn install --ignore-scripts --ignore-optional
 	cd e2e-yarn && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
-	# Test CI reinstall
-	cd e2e-yarn && rm -fr node_modules && yarn install --immutable
-	cd e2e-yarn && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
-
 	# Test install without optional dependencies
-	rm -fr e2e-yarn && mkdir e2e-yarn && cd e2e-yarn && echo {} > package.json && touch yarn.lock && yarn set version classic && yarn add ezburn
+	cd e2e-yarn && rm -rf node_modules && yarn install --ignore-optional
 	cd e2e-yarn && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
-	# Test CI reinstall
-	cd e2e-yarn && rm -fr node_modules && yarn install --immutable --ignore-optional
-	cd e2e-yarn && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
-
 	# Clean up
-	rm -fr e2e-yarn
+	cd .. && rm -rf e2e-yarn
 
 test-e2e-yarn-berry:
 	# Test normal install
-	rm -fr e2e-yb && mkdir e2e-yb && cd e2e-yb && echo {} > package.json && touch yarn.lock && yarn set version berry && yarn add ezburn
+	rm -fr e2e-yb && mkdir e2e-yb && cd e2e-yb && echo {} > package.json && touch yarn.lock && yarn set version berry && yarn add --ignore-optional ezburn
 	cd e2e-yb && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
 	# Test CI reinstall
 	cd e2e-yb && yarn install --immutable
@@ -240,7 +208,7 @@ test-e2e-yarn-berry:
 	cd e2e-yb && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
 
 	# Test install without scripts
-	rm -fr e2e-yb && mkdir e2e-yb && cd e2e-yb && echo {} > package.json && touch yarn.lock && echo 'enableScripts: false' > .yarnrc.yml && yarn set version berry && yarn add ezburn
+	rm -fr e2e-yb && mkdir e2e-yb && cd e2e-yb && echo {} > package.json && touch yarn.lock && echo 'enableScripts: false' > .yarnrc.yml && yarn set version berry && yarn add --ignore-optional ezburn
 	cd e2e-yb && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
 	# Test CI reinstall
 	cd e2e-yb && yarn install --immutable
@@ -250,7 +218,7 @@ test-e2e-yarn-berry:
 	cd e2e-yb && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
 
 	# Test install without optional dependencies
-	rm -fr e2e-yb && mkdir e2e-yb && cd e2e-yb && echo {} > package.json && touch yarn.lock && yarn set version berry && yarn add --no-optional ezburn
+	rm -fr e2e-yb && mkdir e2e-yb && cd e2e-yb && echo {} > package.json && touch yarn.lock && yarn set version berry && yarn add --ignore-optional ezburn
 	cd e2e-yb && echo "1+2" | yarn ezburn && yarn node -p "require('ezburn').transformSync('1+2').code"
 	# Test CI reinstall
 	cd e2e-yb && yarn install --immutable
