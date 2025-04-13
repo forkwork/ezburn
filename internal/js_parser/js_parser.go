@@ -12816,6 +12816,9 @@ type exprOut struct {
 }
 
 func (p *parser) visitExpr(expr js_ast.Expr) js_ast.Expr {
+	if expr.Data == nil {
+		return expr
+	}
 	expr, _ = p.visitExprInOut(expr, exprIn{})
 	return expr
 }

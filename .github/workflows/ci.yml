@@ -200,7 +200,7 @@ jobs:
           # written about this here: https://yarnpkg.com/corepack
           corepack enable
 
-          make test-yarnpnp
+          npm install -g yarn
 
   ezburn-old-go-version:
     name: ezburn CI (old Go version)

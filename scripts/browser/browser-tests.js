@@ -70,11 +70,14 @@ const server = http.createServer((req, res) => {
     console.error(err)
   }
 })
+let serverURL;
 
-server.listen()
-const { address, port } = server.address()
-const serverURL = url.format({ protocol: 'http', hostname: address, port })
-console.log(`[http] listening on ${serverURL}`)
+server.listen(0, 'localhost', () => {
+  const { address, port } = server.address()
+  serverURL = url.format({ protocol: 'http', hostname: address, port })
+  console.log(`[http] listening on ${serverURL}`)
+})
+
 
 async function main() {
   let allTestsPassed = true

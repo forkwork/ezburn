@@ -4,8 +4,19 @@
     "target": "es2017", // Allow calling APIs such as "Object.entries"
     "strict": true,
     "skipLibCheck": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "typeRoots": ["./deno"],
+    "lib": ["es2017", "dom"]
   },
+  "include": [
+    "deno/**/*.ts",
+    "shared/**/*.ts"
+  ],
   "exclude": [
     "npm",
-  ],
+    "deno/lib.deno.d.ts"
+  ]
 }
