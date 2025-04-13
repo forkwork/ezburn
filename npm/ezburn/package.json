@@ -7,7 +7,9 @@
     "url": "git+https://github.com/khulnasoft/ezburn.git"
   },
   "scripts": {
-    "postinstall": "node install.js"
+    "postinstall": "node install.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
@@ -16,6 +18,10 @@
   },
   "bin": {
     "ezburn": "bin/ezburn"
+  },
+  "devDependencies": {
+    "typescript": "4.9.5",
+    "@types/node": "18.15.11"
   },
   "optionalDependencies": {
     "@ezburn/aix-ppc64": "0.1.0",
