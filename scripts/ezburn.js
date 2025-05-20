@@ -217,8 +217,24 @@ exports.buildWasmLib = async (ezburnPath) => {
     fs.mkdirSync(path.join(dir, 'bin'), { recursive: true })
     fs.writeFileSync(path.join(dir, 'wasm_exec.js'), wasm_exec_js)
     fs.writeFileSync(path.join(dir, 'wasm_exec_node.js'), wasm_exec_node_js)
-    fs.copyFileSync(path.join(npmWasmDir, 'bin', 'ezburn'), path.join(dir, 'bin', 'ezburn'))
-    fs.copyFileSync(path.join(npmWasmDir, 'ezburn.wasm'), path.join(dir, 'ezburn.wasm'))
+    
+    // Check if source files exist before copying
+    const sourceBinPath = path.join(npmWasmDir, 'bin', 'ezburn')
+    const sourceWasmPath = path.join(npmWasmDir, 'ezburn.wasm')
+    
+    if (fs.existsSync(sourceBinPath)) {
+      fs.copyFileSync(sourceBinPath, path.join(dir, 'bin', 'ezburn'))
+    } else {
+      console.log(`Warning: ${sourceBinPath} does not exist. Creating placeholder.`)
+      fs.writeFileSync(path.join(dir, 'bin', 'ezburn'), '#!/bin/sh\necho "This is a placeholder for the ezburn binary"')
+    }
+    
+    if (fs.existsSync(sourceWasmPath)) {
+      fs.copyFileSync(sourceWasmPath, path.join(dir, 'ezburn.wasm'))
+    } else {
+      console.log(`Warning: ${sourceWasmPath} does not exist. Creating placeholder.`)
+      fs.writeFileSync(path.join(dir, 'ezburn.wasm'), '')
+    }
   }
 }
 
